@@ -179,7 +179,8 @@ colorecho "$GREEN" "Refresh package database..."
 pacman -Sy --noconfirm
 
 colorecho "$GREEN" "Installing latest linux-aarch64 kernel..."
-pacman -Sy linux-aarch64 --needed --noconfirm --nodeps --nodeps
+pacman -Sy linux-aarch64 --needed --noconfirm --nodeps
+
 colorecho "$GREEN" "Removing linux-firmware ..."
 pacman -Rdd linux-firmware linux-firmware-whence --noconfirm
 
@@ -187,15 +188,15 @@ colorecho "$GREEN" "Running full system upgrade ..."
 pacman -Syu --noconfirm
 
 colorecho "$GREEN" "Installing cloud-init ..."
-curl -LO --output-dir /tmp/ https://gist.githubusercontent.com/mschirrmeister/a009b8ce91a20bcc214c66f62aced9c9/raw/8c66f4d9bfb3ea05828f37ce420680eb007191de/cloud-init-23.1.2-2-any.pkg.tar.xz
-pacman -U /tmp/cloud-init-23.1.2-2-any.pkg.tar.xz --noconfirm
-rm -f /tmp/cloud-init-23.1.2-2-any.pkg.tar.xz
+cloudinit_pkg="cloud-init-25.1.2-1-any.pkg.tar.zst"
+curl -LO --output-dir /tmp/ "https://archive.archlinux.org/packages/c/cloud-init/$cloudinit_pkg"
+pacman -U /tmp/"$cloudinit_pkg" --needed --noconfirm
+rm -f /tmp/"$cloudinit_pkg"
+
 colorecho "$GREEN" "Enabling cloud-init services ..."
-systemctl enable cloud-init-local.service
-systemctl enable cloud-init.service
-systemctl enable cloud-config.service
+systemctl enable cloud-init-main.service
 systemctl enable cloud-final.service
-systemctl enable cloud-init-hotplugd.socket
+
 colorecho "$GREEN" "Clearing package cache ..."
 printf "y\ny\n" | pacman -Scc
 END
@@ -205,8 +206,8 @@ colorecho "$GREEN" "Copying boot partition files ..."
 sudo cp -r /mnt/arch-root/boot/* /mnt/arch-boot/
 sudo rm -rf /mnt/arch-root/boot/*
 
-# --- GRUB Install ---
-colorecho "$GREEN" "Installing GRUB bootloader ..."
+# --- Setting up boot partition ---
+colorecho "$GREEN" "Mounting boot partition ..."
 sudo mkdir -p /mnt/arch-root/boot
 sudo mount $BOOTP /mnt/arch-root/boot
 
@@ -228,9 +229,13 @@ colorecho "$GREEN" "Installing GRUB bootloader ..."
 pacman-key --init
 pacman-key --populate archlinuxarm
 pacman -Sy grub efibootmgr --noconfirm
-colorecho "$GREEN" "Clearing package cache ..."
+
+colorecho "$GREEN" "Installing cloud-guest-utils for rootfs auto-resize ..."
+pacman -Sy cloud-guest-utils --needed --noconfirm
+
 colorecho "$GREEN" "Append the following cmdline to grub: "
 sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\".*\"/GRUB_CMDLINE_LINUX_DEFAULT=\"console=ttyAMA0\"/" /etc/default/grub
+
 colorecho "$GREEN" "Installing GRUB ..."
 grub-install --target=arm64-efi --efi-directory=/boot --removable
 colorecho "$GREEN" "Generating GRUB config ..."
@@ -238,12 +243,22 @@ grub-mkconfig -o /boot/grub/grub.cfg
 
 colorecho "$GREEN" "Updating mirrors..."
 sed -i 's/^# Server/Server/' /etc/pacman.d/mirrorlist.save
-colorecho "$GREEN" "Installing pacman-contrib..."   
+
+colorecho "$GREEN" "Installing pacman-contrib..."
 pacman -S pacman-contrib --needed --noconfirm
+
 colorecho "$GREEN" "Ranking mirrors..."
 rankmirrors -n 5 /etc/pacman.d/mirrorlist.save | grep -v '^\s*#' | tee /etc/pacman.d/mirrorlist
+
+colorecho "$GREEN" "Clearing package cache ..."
 printf "y\ny\n" | pacman -Scc
 END
+
+# --- Zero out free space in root partition to improve compressibility ---
+colorecho "$GREEN" "Zeroing out free space in root partition ..."
+sudo dd if=/dev/zero of=/mnt/arch-root/zero.fill bs=1M status=progress || true
+sudo sync
+sudo rm -f /mnt/arch-root/zero.fill
 
 # --- Unmount boot if still mounted ---
 if mountpoint -q /mnt/arch-root/boot; then
@@ -263,14 +278,14 @@ QCOW2_IMG="${IMAGE_NAME%.img}.qcow2"
 VMDK_IMG="${IMAGE_NAME%.img}.vmdk"
 
 colorecho "$GREEN" "Creating VM images ..."
-sudo qemu-img convert -O qcow2 "$RAW_IMG" "$QCOW2_IMG"
-sudo qemu-img convert -O vmdk "$RAW_IMG" "$VMDK_IMG"
+sudo qemu-img convert -p -O qcow2 "$RAW_IMG" "$QCOW2_IMG"
+sudo qemu-img convert -p -O vmdk "$RAW_IMG" "$VMDK_IMG"
 
 if [ "$COMPRESS" = 1 ]; then
     colorecho "$GREEN" "Compressing images ..."
-    sudo xz -T 0 "$RAW_IMG"
-    sudo xz -T 0 "$QCOW2_IMG"
-    sudo xz -T 0 "$VMDK_IMG"
+    sudo xz -T 0 --verbose "$RAW_IMG"
+    sudo xz -T 0 --verbose "$QCOW2_IMG"
+    sudo xz -T 0 --verbose "$VMDK_IMG"
 fi
 
 colorecho "$GREEN" "All images created:"

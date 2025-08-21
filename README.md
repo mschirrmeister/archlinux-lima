@@ -12,8 +12,8 @@ Arch Linux for ARM (Aarch64) on Lima
 ![Platform: ARM64](https://img.shields.io/badge/platform-ARM64-0091BD?logo=arm&logoColor=white)
 ![Apple Silicon](https://img.shields.io/badge/Apple-Silicon-green.svg)
 
-[![GitHub release](https://img.shields.io/github/v/release/mschirrmeister/archlinux-lima.svg?style=flat)](https://github.com/mschirrmeister/archlinux-lima/releases) 
-![Build](https://github.com/mschirrmeister/archlinux-lima/actions/workflows/build_image_cloud.yaml/badge.svg) [![Issues](https://img.shields.io/github/issues/mschirrmeister/archlinux-lima.svg)](https://github.com/mschirrmeister/archlinux-lima/issues) 
+[![GitHub release](https://img.shields.io/github/v/release/mschirrmeister/archlinux-lima.svg?style=flat)](https://github.com/mschirrmeister/archlinux-lima/releases)
+![Build](https://github.com/mschirrmeister/archlinux-lima/actions/workflows/build_image_cloud.yaml/badge.svg) [![Issues](https://img.shields.io/github/issues/mschirrmeister/archlinux-lima.svg)](https://github.com/mschirrmeister/archlinux-lima/issues)
 [![PRs](https://img.shields.io/github/issues-pr/mschirrmeister/archlinux-lima.svg)](https://github.com/mschirrmeister/archlinux-lima/pulls)
 
 [![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/mschirrmeister/archlinux-lima/issues)
@@ -70,7 +70,7 @@ If you want to build an image yourself, clone the repo and build it locally.
 1. Build the image with a Lima VM
 
    ```shell
-   limactl start --name build-arch template://debian
+   limactl start --name build-arch template://ubuntu
    limactl shell build-arch
    ```
 
@@ -84,7 +84,7 @@ If you want to build an image yourself, clone the repo and build it locally.
 3. Back on your Mac generate a Lima template
 
    ```shell
-   ./create-archlinux-yaml.sh
+   ./create-archlinux-template.sh
    ```
 
 4. Start the VM
@@ -133,7 +133,7 @@ After the template is created you can start the VM with:
 
 ## 🛠️ Customize qcow2 image
 
-In case you want to create a customized image you can start a local VM via **qemu**, do all you changes and use the updated **qcow2** image in a new template.  
+In case you want to create a customized image you can start a local VM via **qemu**, do all you changes and use the updated **qcow2** image in a new template.
 On a Mac with Apple Silicon (only tested on M4) you can boot a VM with the following command.
 
 	qemu-system-aarch64 \
@@ -144,7 +144,7 @@ On a Mac with Apple Silicon (only tested on M4) you can boot a VM with the follo
 	    -m 2048 \
 	    -rtc base=utc \
 	    -drive if=pflash,format=raw,file="/opt/homebrew/share/qemu/edk2-aarch64-code.fd",readonly=on \
-	    -drive if=pflash,format=raw,file=edk2-arm-vars.fd \
+	    -drive if=pflash,format=raw,file="/opt/homebrew/share/qemu/edk2-arm-vars.fd" \
 	    -drive file="Arch-Linux-aarch64-cloudimg-20250510.0.qcow2",if=virtio,format=qcow2 \
 	    -boot menu=on \
 	    -nic user,id=NAT,model=virtio-net-pci,mac=02:00:00:00:00:01 \
@@ -297,14 +297,14 @@ And big love to all the upstream maintainers, contributors, and every open sourc
 
 ## 🤝 Pull Up & Contribute
 
-Ayo, this project’s open for all!  
+Ayo, this project’s open for all!
 If you got ideas, fixes, or just wanna chop it up about Arch on Apple Silicon, you in the right spot.
 
 - **Pull Requests:** Got code? Drop a PR, keep it clean, and let’s build together.
 - **Issues:** Something broke? Got a question? Throw it in the issues—no dumb questions here.
 - **Discussions:** Wanna vibe about setups, Lima tricks, or just flex your config? Start a thread, let’s get it.
 
-New to open source? Don’t trip—every contribution counts, and I got your back if you need help with your first PR.  
+New to open source? Don’t trip—every contribution counts, and I got your back if you need help with your first PR.
 Let’s make this repo legendary, together!
 
 
